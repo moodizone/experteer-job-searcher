@@ -7,9 +7,11 @@ import { persistStore, persistReducer } from "redux-persist";
 
 import { RootState } from "../type";
 import jobsReducer from "../slice/jobs";
+import userReducer from "../slice/user";
 
 const rootReducer = combineReducers({
   jobs: jobsReducer,
+  user: userReducer,
 });
 
 const persistConfig: PersistConfig<RootState> = {
