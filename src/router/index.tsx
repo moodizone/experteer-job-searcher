@@ -7,8 +7,8 @@ import { RouteName, RouteType } from "./type";
 import React from "react";
 
 const ROUTES: Record<RouteName, RouteType> = {
-  search: { path: "/jobs", Component: Search,title:'Search' },
-  details: { path: "/jobs/:id", Component: Details, },
+  search: { path: "/jobs", Component: Search, title: "Search" },
+  details: { path: "/jobs/:id", Component: Details },
 };
 const defaultRoute = ROUTES.search.path;
 
