@@ -1,0 +1,18 @@
+.container {
+  cursor: pointer;
+
+  .paragraph{
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+
+  .icon {
+    svg {
+      height: 16px;
+      width: 16px;
+    }
+  }
+}
