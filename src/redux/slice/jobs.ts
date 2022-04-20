@@ -2,7 +2,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface QueryType {
   Query: string;
-  Location: string;
+  Limit: string;
 }
 export interface JobsType {
   Title: string;
@@ -13,7 +13,7 @@ export interface JobsType {
   Guid: string;
   Url: string;
 }
-interface SearchResults {
+export interface SearchResults {
   Jobs: JobsType[] | null;
   Query: QueryType;
   Session: string;
@@ -21,7 +21,7 @@ interface SearchResults {
   UUID: string;
 }
 interface JobStateType {
-  appliedList: string[];
+  appliedList: JobsType["Guid"][];
   result?: SearchResults;
 }
 
