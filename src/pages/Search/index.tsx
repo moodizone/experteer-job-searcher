@@ -1,60 +1,102 @@
 import * as React from "react";
+import { useSearchParams } from "react-router-dom";
 
-import JobCard from "../../components/JobCard";
-import SearchLoading from "../../components/SearchLoading/SearchLoading";
+import Results from "./Results";
+import { ActionType, StateType } from "./type";
 import { baseWsURL } from "../../constant/baseURL";
 import { setResults } from "../../redux/slice/jobs";
-import { setUUID } from "../../redux/slice/user";
 import { useAppDispatch, useAppSelector } from "../../hooks/redux";
-import { useAsyncFn } from "../../hooks/async";
-import { useNavigate } from "react-router-dom";
-import { ROUTES } from "../../router";
+
+let webSocket: WebSocket;
+const initialState: StateType = {
+  loading: false,
+  error: null,
+  results: null,
+  status: "idle",
+};
+
+function searchReducer(state: StateType, action: ActionType): StateType {
+  switch (action.type) {
+    case "idle":
+      return initialState;
+    case "pending":
+      return {
+        error: null,
+        results: null,
+        loading: true,
+        status: "pending",
+      };
+    case "rejected":
+      return {
+        error: action.payload,
+        results: null,
+        loading: false,
+        status: "rejected",
+      };
+    case "resolved":
+      return {
+        error: null,
+        results: action.payload,
+        loading: true,
+        status: "resolved",
+      };
+    default:
+      throw Error(`invalid action type :${action.type}`);
+  }
+}
 
 const Search = () => {
-  const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const [searchedParams, setSearchParams] = useSearchParams();
   const session = useAppSelector((state) => state.user.session);
-  const result = useAppSelector((state) => state.jobs.result);
-  const { loading, handler: onSubmit } = useAsyncFn<any>(
-    async (event: any) => {
-      const location = event[0].target[0].value;
-      const query = event[0].target[1].value;
+  const [state, action] = React.useReducer(searchReducer, initialState);
 
-      if (query && session && location) {
-        await dispatch(setUUID({ query, session, location }));
-        const webSocket = new WebSocket(`ws://${baseWsURL}/stream/${session}`);
+  const onSubmit = React.useCallback(() => {
+    const form: HTMLFormElement | null = document.querySelector(
+      "form[name='searchForm']"
+    );
 
-        webSocket.onmessage = ({ data }) => {
-          dispatch(setResults(JSON.parse(data)));
-        };
-        webSocket.onerror = (e) => {
-          console.error(`Error occurred during communication : ${e}`);
-          webSocket.close();
-        };
-        return () => {
-          webSocket.close();
-        };
+    if (form) {
+      const { Query, Limit } = Object.fromEntries(new FormData(form).entries());
+      if (Query && Limit && session && webSocket) {
+        // type alias because I'm sure I dont have uploader input
+        const body = { Query, Limit } as Record<string, string>;
+        action({ type: "pending" });
+        setSearchParams({ Query: body.Query });
+        webSocket.send(JSON.stringify(body));
       }
-    },
-    [dispatch, session]
-  );
-  const content = (
-    <div className="row">
-      <div className="col-10 col-sm-9 col-md-8 col-lg-6 mx-auto my-3">
-        <div className="row gy-3">
-          {result?.Jobs?.map((job) => (
-            <JobCard
-              {...job}
-              key={job.Guid}
-              onClick={() =>
-                navigate(`${ROUTES.details.path}`.replace(":id", job.Guid))
-              }
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+    }
+  }, [session, setSearchParams]);
+
+  React.useEffect(() => {
+    if (searchedParams.has("Query")) {
+      const input = document.querySelector('input[name="Query"]');
+      const value = searchedParams.get("Query");
+      if (input && value) {
+        (input as HTMLInputElement).value = value;
+      }
+    }
+  }, [searchedParams]);
+
+  React.useEffect(() => {
+    if (session) {
+      webSocket = new WebSocket(`ws://${baseWsURL}/stream/${session}`);
+      webSocket.onmessage = ({ data: rawDate }) => {
+        const data = JSON.parse(rawDate);
+        action({ type: "resolved", payload: JSON.parse(data) });
+        dispatch(setResults(data));
+      };
+      webSocket.onerror = (e) => {
+        action({ type: "rejected", payload: e });
+        webSocket.close();
+      };
+    }
+
+    return () => {
+      action({ type: "idle" });
+      webSocket?.close();
+    };
+  }, [dispatch, session]);
 
   return (
     <div className="container">
@@ -67,44 +109,40 @@ const Search = () => {
           </div>
           <div className="col-12">
             <form
+              name={"searchForm"}
               onSubmit={(e) => {
                 e.preventDefault();
-                onSubmit(e);
+                onSubmit();
               }}
             >
               <div className="px-3 d-flex flex-wrap gx-3 gy-3 row">
-                <div className="col-12 col-sm-6 col-md-5">
-                  <select
-                    name={"location"}
-                    className="form-select"
-                    defaultValue={"Munich"}
-                  >
-                    <option value="Munich">Munich</option>
-                    <option value="Berlin">Berlin</option>
-                  </select>
-                </div>
-                <div className="col-12 col-sm-6 col-md-5">
+                <div className="col-12 col-sm-8 col-md-7">
                   <input
                     required
-                    name="query"
+                    name="Query"
                     type="text"
                     className="form-control"
                     placeholder={"Find your dream job now"}
                   />
                 </div>
+                <div className="col-12 col-sm-4 col-md-3">
+                  <select
+                    name={"Limit"}
+                    className="form-select"
+                    defaultValue={"10"}
+                  >
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
                 <div className="col-12 col-sm-12 col-md-2">
                   <button
                     type="submit"
                     className="btn btn-success w-100"
-                    disabled={loading}
+                    disabled={state.loading}
                   >
-                    {loading ? (
-                      <span
-                        className="spinner-border spinner-border-sm"
-                        role="status"
-                        aria-hidden="true"
-                      />
-                    ) : null}
                     {"Search"}
                   </button>
                 </div>
@@ -113,7 +151,7 @@ const Search = () => {
           </div>
         </div>
       </div>
-      {loading ? <SearchLoading /> : content}
+      <Results {...state} />
     </div>
   );
 };
