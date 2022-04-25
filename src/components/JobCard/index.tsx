@@ -2,10 +2,10 @@ import * as React from "react";
 import classNames from "classnames";
 import { MapPin } from "react-feather";
 
-import { JobsType } from "../../redux/slice/jobs";
 import styles from "./styles.module.scss";
+import { JobType } from "../../api/type";
 
-export interface Props extends JobsType {
+export interface Props extends JobType {
   onClick: () => void;
   isApplied?: boolean;
 }
@@ -18,7 +18,6 @@ export const JobCard: React.FC<Props> = ({
   Published,
   Title,
   isApplied = false,
-  Guid,
 }) => {
   return (
     <div className={classNames("card", styles.container)} onClick={onClick}>
@@ -28,7 +27,7 @@ export const JobCard: React.FC<Props> = ({
             <h5 className="card-title">{Title}</h5>
             <h6 className="card-subtitle mb-2 text-muted">{Company}</h6>
           </div>
-          {isApplied? (
+          {isApplied ? (
             <div className="col flex-grow-0 flex-shrink-0 ps-2">
               <span className="badge bg-secondary">Applied</span>
             </div>

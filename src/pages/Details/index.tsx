@@ -1,9 +1,9 @@
 import * as React from "react";
 import classNames from "classnames";
+import { MapPin } from "react-feather";
 import { Navigate, useLocation, useParams } from "react-router-dom";
 
 import styles from "../../components/JobCard/styles.module.scss";
-import { MapPin } from "react-feather";
 import { Props } from "../../components";
 import { ROUTES } from "../../router";
 import { apply } from "../../redux/slice/jobs";
@@ -18,8 +18,6 @@ const Details = () => {
   if (!jobDetails || id !== jobDetails?.Guid) {
     return <Navigate to={ROUTES.search.path} replace />;
   }
-
-  console.log("index.tsx -> jobDetails : ", jobDetails);
 
   return (
     <div className={"row"}>
@@ -73,7 +71,10 @@ const Details = () => {
                 </div>
               </div>
               <div className={"mt-5"}>
-                <p className="card-text">{jobDetails?.Description}</p>
+                <p
+                  className="card-text"
+                  dangerouslySetInnerHTML={{ __html: jobDetails.Description! }}
+                />
               </div>
             </div>
           </div>
