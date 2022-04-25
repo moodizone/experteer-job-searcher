@@ -4,10 +4,6 @@ import { PropsWithChildren } from "react";
 
 import styles from "./styles.module.scss";
 import { PageProps } from "../router/type";
-import { ReactComponent as Spinner } from "../assets/spinner.svg";
-import { setSession } from "../redux/slice/user";
-import { useAppDispatch, useAppSelector } from "../hooks/redux";
-import { useAsync } from "../hooks/async";
 
 const AppLayout: React.FC<PropsWithChildren<PageProps>> = ({
   title = "Experteer",
@@ -16,8 +12,6 @@ const AppLayout: React.FC<PropsWithChildren<PageProps>> = ({
   // =========================================
   // Init
   // =========================================
-  const dispatch = useAppDispatch();
-  const session = useAppSelector((state) => state.user.session);
   const content = (
     <div
       className={classNames(
@@ -29,20 +23,6 @@ const AppLayout: React.FC<PropsWithChildren<PageProps>> = ({
       <div className={styles.content}>{children}</div>
     </div>
   );
-  const loadingComponent = (
-    <div className={styles.spinner}>
-      <Spinner />
-    </div>
-  );
-
-  // =========================================
-  // Handler
-  // =========================================
-  const { loading } = useAsync(async () => {
-    if (!session) {
-      await dispatch(setSession()).unwrap();
-    }
-  }, [dispatch, session]);
 
   React.useEffect(() => {
     if (title) document.title = title;
@@ -51,7 +31,7 @@ const AppLayout: React.FC<PropsWithChildren<PageProps>> = ({
   // =========================================
   // Render
   // =========================================
-  return loading ? loadingComponent : content;
+  return content;
 };
 
 export default AppLayout;
