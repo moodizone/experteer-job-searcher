@@ -12,8 +12,8 @@ body {
 #root {
   overflow-x: hidden;
   overflow-y: auto;
-  width: 100vw;
-  height: 100vh;
+  min-width: 100vw;
+  min-height: 100vh;
 }
 
 code {

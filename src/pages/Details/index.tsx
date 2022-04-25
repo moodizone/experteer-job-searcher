@@ -23,6 +23,10 @@ const Details = () => {
   const appliedList = useAppSelector((state) => state.jobs.appliedList);
   let isApplied = false;
 
+  React.useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   if (jobDetails?.Guid) {
     isApplied = appliedList.indexOf(jobDetails?.Guid) !== -1;
   }
