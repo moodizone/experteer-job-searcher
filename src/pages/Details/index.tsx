@@ -15,6 +15,7 @@ const Details = () => {
   const dispatch = useAppDispatch();
   const jobDetails = location.state as Props | null;
 
+  // redirect invalid job id
   if (!jobDetails || id !== jobDetails?.Guid) {
     return <Navigate to={ROUTES.search.path} replace />;
   }
@@ -65,7 +66,7 @@ const Details = () => {
                         jobDetails?.Guid && dispatch(apply(jobDetails?.Guid))
                       }
                     >
-                      Apply
+                      {"Apply"}
                     </button>
                   )}
                 </div>

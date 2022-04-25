@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 
 import { JobCard, SearchLoading } from "../../components";
 import { ROUTES } from "../../router";
-import { StateType } from "./type";
+import { ResultsProps } from "./type";
 import { useAppSelector } from "../../hooks/redux";
 
-const Results: React.FC<StateType> = ({ results, loading, error }) => {
+const Results: React.FC<ResultsProps> = ({ results, loading, error }) => {
   // =========================================
   // Init
   // =========================================

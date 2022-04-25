@@ -6,13 +6,14 @@ import { ActionType, StateType } from "./type";
 import { JobType } from "../../api/type";
 import { jobSearcherApi, SearchBody } from "../../api";
 import { useInterval } from "../../hooks/useInterval";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import { clearResults, setResults } from "../../redux/slice/jobs";
 
 let interval: NodeJS.Timer;
 const initialState: StateType = {
   loading: false,
   status: "idle",
   error: null,
-  results: null,
 };
 function searchReducer(state: StateType, action: ActionType): StateType {
   switch (action.type) {
@@ -21,21 +22,18 @@ function searchReducer(state: StateType, action: ActionType): StateType {
     case "pending":
       return {
         error: null,
-        results: null,
         loading: true,
         status: "pending",
       };
     case "rejected":
       return {
         error: action.payload,
-        results: null,
         loading: false,
         status: "rejected",
       };
     case "resolved":
       return {
         error: null,
-        results: action.payload,
         loading: false,
         status: "resolved",
       };
@@ -45,9 +43,11 @@ function searchReducer(state: StateType, action: ActionType): StateType {
 }
 
 const Search = () => {
+  const dispatch = useAppDispatch();
   const [state, action] = React.useReducer(searchReducer, initialState);
   const [searchedParams, setSearchParams] = useSearchParams();
   const [UUID, setUUID] = React.useState<string | null>(null);
+  const results = useAppSelector((state) => state.jobs.result);
   const onSubmit = React.useCallback(async () => {
     const form: HTMLFormElement | null = document.querySelector(
       "form[name='searchForm']"
@@ -93,6 +93,7 @@ const Search = () => {
           const response = await jobSearcherApi.result(UUID);
           setUUID(null);
           action({ type: "resolved", payload: response });
+          dispatch(setResults(response));
           clearInterval(interval);
         }
       }
@@ -112,13 +113,16 @@ const Search = () => {
   // parse URL and fill input if provided
   React.useEffect(() => {
     if (searchedParams.has("Query")) {
-      const input = document.querySelector('input[name="Query"]');
+      const inputElement = document.querySelector('input[name="Query"]');
       const value = searchedParams.get("Query");
-      if (input && value) {
-        (input as HTMLInputElement).value = value;
+
+      if (inputElement && value) {
+        (inputElement as HTMLInputElement).value = value;
       }
+    } else {
+      dispatch(clearResults());
     }
-  }, [searchedParams]);
+  }, [dispatch, searchedParams]);
 
   return (
     <div className="container">
@@ -173,7 +177,7 @@ const Search = () => {
           </div>
         </div>
       </div>
-      <Results {...state} />
+      <Results {...state} results={results} />
     </div>
   );
 };

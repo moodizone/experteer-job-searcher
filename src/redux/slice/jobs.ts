@@ -1,28 +1,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-interface QueryType {
-  Query: string;
-  Limit: string;
-}
-export interface JobsType {
-  Title: string;
-  Description: string;
-  Location: string;
-  Published: string;
-  Company: string;
-  Guid: string;
-  Url: string;
-}
-export interface SearchResults {
-  Jobs: JobsType[] | null;
-  Query: QueryType;
-  Session: string;
-  Status: "failed" | "succeed";
-  UUID: string;
-}
+import { JobType } from "../../api/type";
+
 interface JobStateType {
-  appliedList: JobsType["Guid"][];
-  result?: SearchResults;
+  appliedList: JobType["Guid"][];
+  result?: JobType[];
 }
 
 const initialState: JobStateType = {
@@ -35,11 +17,14 @@ const jobsSlice = createSlice({
     apply: (state, action: PayloadAction<string>) => {
       state.appliedList.push(action.payload);
     },
-    setResults: (state, action: PayloadAction<SearchResults>) => {
+    setResults: (state, action: PayloadAction<JobType[] | undefined>) => {
       state.result = action.payload;
+    },
+    clearResults: (state) => {
+      state.result = undefined;
     },
   },
 });
 
-export const { apply, setResults } = jobsSlice.actions;
+export const { apply, setResults, clearResults } = jobsSlice.actions;
 export default jobsSlice.reducer;
