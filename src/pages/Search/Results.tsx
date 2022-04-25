@@ -25,7 +25,7 @@ const Results: React.FC<ResultsProps> = ({ results, loading, error }) => {
         isApplied={isApplied}
         onClick={() =>
           navigate(`${ROUTES.details.path}`.replace(":id", job.Guid), {
-            state: { ...job, isApplied },
+            state: { ...job },
           })
         }
       />

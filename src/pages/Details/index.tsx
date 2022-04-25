@@ -1,19 +1,31 @@
 import * as React from "react";
 import classNames from "classnames";
-import { MapPin } from "react-feather";
-import { Navigate, useLocation, useParams } from "react-router-dom";
+import { MapPin, ArrowLeft } from "react-feather";
+import {
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 
 import styles from "../../components/JobCard/styles.module.scss";
 import { Props } from "../../components";
 import { ROUTES } from "../../router";
 import { apply } from "../../redux/slice/jobs";
-import { useAppDispatch } from "../../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../../hooks/redux";
 
 const Details = () => {
+  const navigate = useNavigate();
   const { id } = useParams<keyof { id: string }>();
   const location = useLocation();
   const dispatch = useAppDispatch();
   const jobDetails = location.state as Props | null;
+  const appliedList = useAppSelector((state) => state.jobs.appliedList);
+  let isApplied = false;
+
+  if (jobDetails?.Guid) {
+    isApplied = appliedList.indexOf(jobDetails?.Guid) !== -1;
+  }
 
   // redirect invalid job id
   if (!jobDetails || id !== jobDetails?.Guid) {
@@ -24,6 +36,11 @@ const Details = () => {
     <div className={"row"}>
       <div className={"col-12"}>
         <div className="container">
+          <div className="mb-3">
+            <button onClick={() => navigate(-1)} className="btn btn-light px-3">
+              <ArrowLeft />
+            </button>
+          </div>
           <div className="card">
             <div className="card-body">
               <div className="row align-items-center">
@@ -50,25 +67,16 @@ const Details = () => {
                   ) : null}
                 </div>
                 <div className="col flex-shrink-0 flex-grow-0 ps-1">
-                  {jobDetails.isApplied ? (
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      disabled
-                    >
-                      Applied
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn btn-success"
-                      onClick={() =>
-                        jobDetails?.Guid && dispatch(apply(jobDetails?.Guid))
-                      }
-                    >
-                      {"Apply"}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className={`btn btn-${isApplied ? "secondary" : "success"}`}
+                    disabled={isApplied}
+                    onClick={() =>
+                      !isApplied && dispatch(apply(jobDetails?.Guid))
+                    }
+                  >
+                    {isApplied ? "Applied" : "Apply"}
+                  </button>
                 </div>
               </div>
               <div className={"mt-5"}>
