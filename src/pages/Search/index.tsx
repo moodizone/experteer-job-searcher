@@ -3,18 +3,17 @@ import { useSearchParams } from "react-router-dom";
 
 import Results from "./Results";
 import { ActionType, StateType } from "./type";
-import { baseWsURL } from "../../constant/baseURL";
-import { setResults } from "../../redux/slice/jobs";
-import { useAppDispatch, useAppSelector } from "../../hooks/redux";
+import { JobType } from "../../api/type";
+import { jobSearcherApi, SearchBody } from "../../api";
+import { useInterval } from "../../hooks/useInterval";
 
-let webSocket: WebSocket;
+let interval: NodeJS.Timer;
 const initialState: StateType = {
   loading: false,
+  status: "idle",
   error: null,
   results: null,
-  status: "idle",
 };
-
 function searchReducer(state: StateType, action: ActionType): StateType {
   switch (action.type) {
     case "idle":
@@ -37,7 +36,7 @@ function searchReducer(state: StateType, action: ActionType): StateType {
       return {
         error: null,
         results: action.payload,
-        loading: true,
+        loading: false,
         status: "resolved",
       };
     default:
@@ -46,28 +45,71 @@ function searchReducer(state: StateType, action: ActionType): StateType {
 }
 
 const Search = () => {
-  const dispatch = useAppDispatch();
-  const [searchedParams, setSearchParams] = useSearchParams();
-  const session = useAppSelector((state) => state.user.session);
   const [state, action] = React.useReducer(searchReducer, initialState);
-
-  const onSubmit = React.useCallback(() => {
+  const [searchedParams, setSearchParams] = useSearchParams();
+  const [UUID, setUUID] = React.useState<string | null>(null);
+  const onSubmit = React.useCallback(async () => {
     const form: HTMLFormElement | null = document.querySelector(
       "form[name='searchForm']"
     );
 
     if (form) {
       const { Query, Limit } = Object.fromEntries(new FormData(form).entries());
-      if (Query && Limit && session && webSocket) {
-        // type alias because I'm sure I dont have uploader input
-        const body = { Query, Limit } as Record<string, string>;
+
+      if (Query && Limit) {
         action({ type: "pending" });
+        // type alias because I'm sure I dont have uploader input
+        const body = { Query, Limit } as SearchBody;
+
+        // set query string on URL
         setSearchParams({ Query: body.Query });
-        webSocket.send(JSON.stringify(body));
+
+        // fake delay in order to loading last longer
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        try {
+          const uuidResponse = await jobSearcherApi.search(body);
+
+          // results which cached by backend so skip other steps
+          if (Array.isArray(uuidResponse)) {
+            action({ type: "resolved", payload: uuidResponse as JobType[] });
+            return;
+          }
+
+          // polling for status with new UUID every 3 seconds
+          setUUID(uuidResponse as string);
+        } catch (e) {
+          action({ type: "rejected", payload: e });
+        }
       }
     }
-  }, [session, setSearchParams]);
+  }, [setSearchParams]);
 
+  useInterval(
+    async () => {
+      if (UUID) {
+        const status = await jobSearcherApi.status(UUID);
+        if (status === 200) {
+          const response = await jobSearcherApi.result(UUID);
+          setUUID(null);
+          action({ type: "resolved", payload: response });
+          clearInterval(interval);
+        }
+      }
+    },
+    // - set delay as `null` consider as termination of interval
+    // - interval will cleanup automatically with build-in mechanism on `unMount` phase
+    UUID ? 3000 : null
+  );
+
+  // cleanup on component unmount
+  React.useEffect(() => {
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, []);
+
+  // parse URL and fill input if provided
   React.useEffect(() => {
     if (searchedParams.has("Query")) {
       const input = document.querySelector('input[name="Query"]');
@@ -77,26 +119,6 @@ const Search = () => {
       }
     }
   }, [searchedParams]);
-
-  React.useEffect(() => {
-    if (session) {
-      webSocket = new WebSocket(`ws://${baseWsURL}/stream/${session}`);
-      webSocket.onmessage = ({ data: rawDate }) => {
-        const data = JSON.parse(rawDate);
-        action({ type: "resolved", payload: JSON.parse(data) });
-        dispatch(setResults(data));
-      };
-      webSocket.onerror = (e) => {
-        action({ type: "rejected", payload: e });
-        webSocket.close();
-      };
-    }
-
-    return () => {
-      action({ type: "idle" });
-      webSocket?.close();
-    };
-  }, [dispatch, session]);
 
   return (
     <div className="container">
