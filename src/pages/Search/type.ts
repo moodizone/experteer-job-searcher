@@ -1,8 +1,8 @@
-import { SearchResults } from "../../redux/slice/jobs";
+import { JobType } from "../../api/type";
 
 type StatusType = "pending" | "resolved" | "rejected" | "idle";
 export interface StateType {
-  results: SearchResults | null;
+  results: JobType[] | null;
   loading: boolean;
   error: any;
   status: StatusType;
